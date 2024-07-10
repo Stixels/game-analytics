@@ -1,10 +1,21 @@
+// app/login/page.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { useFormState } from "react-dom";
-import { toast } from "sonner";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -13,27 +24,48 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import { login, signup } from "./actions";
 
-function SubmitButton() {
-  return (
-    <Button type="submit" className="w-full">
-      Submit
-    </Button>
-  );
-}
+const loginSchema = z.object({
+  email: z.string().email({
+    message: "Please enter a valid email address.",
+  }),
+  password: z.string().min(6, {
+    message: "Password must be at least 6 characters.",
+  }),
+});
 
-const AuthPages = () => {
-  const searchParams = useSearchParams();
+const signupSchema = z.object({
+  email: z.string().email({
+    message: "Please enter a valid email address.",
+  }),
+  password: z.string().min(6, {
+    message: "Password must be at least 6 characters.",
+  }),
+});
+
+export default function AuthPages() {
   const [activeTab, setActiveTab] = useState("login");
-  const [loginState, loginAction] = useFormState(login, {
-    error: null as string | null,
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const loginForm = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
   });
-  const [signupState, signupAction] = useFormState(signup, {
-    error: null as string | null,
+
+  const signupForm = useForm<z.infer<typeof signupSchema>>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
   });
 
   useEffect(() => {
@@ -43,21 +75,27 @@ const AuthPages = () => {
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    if (loginState.error) {
-      toast("Login Error", {
-        description: loginState.error,
-      });
+  const onLoginSubmit = async (values: z.infer<typeof loginSchema>) => {
+    const result = await login(values);
+    if (result.success) {
+      toast.success("Logged in successfully");
+      router.push(redirectedFrom);
+    } else if (result.error) {
+      toast.error(result.error);
     }
-  }, [loginState.error]);
+  };
 
-  useEffect(() => {
-    if (signupState.error) {
-      toast("Signup Error", {
-        description: signupState.error,
-      });
+  const onSignupSubmit = async (values: z.infer<typeof signupSchema>) => {
+    const result = await signup(values);
+    if (result.success) {
+      toast.success(
+        "Sign up successful. Please check your email for confirmation.",
+      );
+      router.push(redirectedFrom);
+    } else if (result.error) {
+      toast.error(result.error);
     }
-  }, [signupState.error]);
+  };
 
   const redirectedFrom = searchParams.get("redirectedFrom") || "/dashboard";
 
@@ -80,37 +118,59 @@ const AuthPages = () => {
                 Enter your credentials to access your account.
               </CardDescription>
             </CardHeader>
-            <form action={loginAction}>
-              <CardContent className="space-y-2">
-                <div className="space-y-1">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
+            <Form {...loginForm}>
+              <form onSubmit={loginForm.handleSubmit(onLoginSubmit)}>
+                <CardContent className="space-y-2">
+                  <FormField
+                    control={loginForm.control}
                     name="email"
-                    type="email"
-                    placeholder="m@example.com"
-                    required
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input placeholder="m@example.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
+                  <FormField
+                    control={loginForm.control}
                     name="password"
-                    type="password"
-                    required
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-                <input
-                  type="hidden"
-                  name="redirectedFrom"
-                  value={redirectedFrom}
-                />
-              </CardContent>
-              <CardFooter className="flex flex-col space-y-2">
-                <SubmitButton />
-              </CardFooter>
-            </form>
+                  <input
+                    type="hidden"
+                    name="redirectedFrom"
+                    value={redirectedFrom}
+                  />
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={loginForm.formState.isSubmitting}
+                  >
+                    {loginForm.formState.isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Logging in...
+                      </>
+                    ) : (
+                      "Login"
+                    )}
+                  </Button>
+                </CardFooter>
+              </form>
+            </Form>
           </Card>
         </TabsContent>
         <TabsContent value="signup">
@@ -121,37 +181,57 @@ const AuthPages = () => {
                 Create an account to get started.
               </CardDescription>
             </CardHeader>
-            <form action={signupAction}>
-              <CardContent className="space-y-2">
-                <div className="space-y-1">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
+            <Form {...signupForm}>
+              <form onSubmit={signupForm.handleSubmit(onSignupSubmit)}>
+                <CardContent className="space-y-2">
+                  <FormField
+                    control={signupForm.control}
                     name="email"
-                    type="email"
-                    placeholder="m@example.com"
-                    required
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input placeholder="m@example.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
+                  <FormField
+                    control={signupForm.control}
                     name="password"
-                    type="password"
-                    required
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-              </CardContent>
-              <CardFooter className="flex flex-col space-y-2">
-                <SubmitButton />
-              </CardFooter>
-            </form>
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={signupForm.formState.isSubmitting}
+                  >
+                    {signupForm.formState.isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Signing up...
+                      </>
+                    ) : (
+                      "Sign Up"
+                    )}
+                  </Button>
+                </CardFooter>
+              </form>
+            </Form>
           </Card>
         </TabsContent>
       </Tabs>
     </div>
   );
-};
-
-export default AuthPages;
+}

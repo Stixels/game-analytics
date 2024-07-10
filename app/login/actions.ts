@@ -1,49 +1,61 @@
+// actions.ts
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { z } from "zod";
 
-export async function login(
-  prevState: { error: string | null },
-  formData: FormData
-) {
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+
+const signupSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+
+export async function login(formData: z.infer<typeof loginSchema>) {
   const supabase = createClient();
 
-  const data = {
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
-  };
+  const { email, password } = loginSchema.parse(formData);
 
-  const { error } = await supabase.auth.signInWithPassword(data);
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     return { error: error.message };
   }
 
   revalidatePath("/", "layout");
-
-  const redirectTo = (formData.get("redirectedFrom") as string) || "/dashboard";
-  redirect(redirectTo);
+  return { success: true };
 }
 
-export async function signup(
-  prevState: { error: string | null },
-  formData: FormData
-) {
+export async function signup(formData: z.infer<typeof signupSchema>) {
   const supabase = createClient();
 
-  const data = {
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
-  };
+  const { email, password } = signupSchema.parse(formData);
 
-  const { error } = await supabase.auth.signUp(data);
+  const { data: signUpData, error } = await supabase.auth.signUp({
+    email,
+    password,
+  });
 
   if (error) {
     return { error: error.message };
   }
 
+  if (signUpData.user) {
+    // Create a profile entry for the new user
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .insert({ id: signUpData.user.id });
+
+    if (profileError) {
+      console.error("Error creating profile:", profileError);
+      return { error: "Failed to create profile: " + profileError.message };
+    }
+  }
+
   revalidatePath("/", "layout");
-  redirect("/dashboard");
+  return { success: true };
 }
