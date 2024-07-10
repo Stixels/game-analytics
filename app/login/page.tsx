@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useFormStatus } from "react-dom";
+import { useFormState } from "react-dom";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,11 +19,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { login, signup } from "./actions";
 
 function SubmitButton() {
-  const { pending } = useFormStatus();
-
   return (
-    <Button type="submit" aria-disabled={pending} className="w-full">
-      {pending ? "Processing..." : "Submit"}
+    <Button type="submit" className="w-full">
+      Submit
     </Button>
   );
 }
@@ -30,6 +29,12 @@ function SubmitButton() {
 const AuthPages = () => {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState("login");
+  const [loginState, loginAction] = useFormState(login, {
+    error: null as string | null,
+  });
+  const [signupState, signupAction] = useFormState(signup, {
+    error: null as string | null,
+  });
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -38,8 +43,26 @@ const AuthPages = () => {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    if (loginState.error) {
+      toast("Login Error", {
+        description: loginState.error,
+      });
+    }
+  }, [loginState.error]);
+
+  useEffect(() => {
+    if (signupState.error) {
+      toast("Signup Error", {
+        description: signupState.error,
+      });
+    }
+  }, [signupState.error]);
+
+  const redirectedFrom = searchParams.get("redirectedFrom") || "/dashboard";
+
   return (
-    <div className="container mx-auto flex items-center justify-center min-h-screen bg-background">
+    <div className="container mx-auto flex min-h-screen items-center justify-center bg-background">
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
@@ -57,7 +80,7 @@ const AuthPages = () => {
                 Enter your credentials to access your account.
               </CardDescription>
             </CardHeader>
-            <form action={login}>
+            <form action={loginAction}>
               <CardContent className="space-y-2">
                 <div className="space-y-1">
                   <Label htmlFor="email">Email</Label>
@@ -78,6 +101,11 @@ const AuthPages = () => {
                     required
                   />
                 </div>
+                <input
+                  type="hidden"
+                  name="redirectedFrom"
+                  value={redirectedFrom}
+                />
               </CardContent>
               <CardFooter className="flex flex-col space-y-2">
                 <SubmitButton />
@@ -93,7 +121,7 @@ const AuthPages = () => {
                 Create an account to get started.
               </CardDescription>
             </CardHeader>
-            <form action={signup}>
+            <form action={signupAction}>
               <CardContent className="space-y-2">
                 <div className="space-y-1">
                   <Label htmlFor="email">Email</Label>

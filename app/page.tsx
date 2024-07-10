@@ -8,7 +8,7 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="container mx-auto px-4 py-8">
-        <nav className="flex justify-between items-center">
+        <nav className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">TeamTracker</h1>
           <div>
             <Button variant="ghost" className="mr-4" asChild>
@@ -22,11 +22,11 @@ const LandingPage = () => {
       </header>
 
       <main className="container mx-auto px-4 py-16">
-        <div className="text-center mb-16">
-          <h2 className="text-5xl font-bold mb-4">
+        <div className="mb-16 text-center">
+          <h2 className="mb-4 text-5xl font-bold">
             Elevate Your Valorant Team&apos;s Performance
           </h2>
-          <p className="text-xl mb-8">
+          <p className="mb-8 text-xl">
             Gain powerful insights to optimize your team&apos;s strategy, player
             performance, and competitive edge
           </p>
@@ -35,10 +35,10 @@ const LandingPage = () => {
           </Button>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid gap-8 md:grid-cols-3">
           <Card>
             <CardHeader>
-              <BarChart className="h-8 w-8 mb-2 text-primary" />
+              <BarChart className="mb-2 h-8 w-8 text-primary" />
               <CardTitle>Comprehensive Analytics</CardTitle>
             </CardHeader>
             <CardContent>
@@ -50,7 +50,7 @@ const LandingPage = () => {
           </Card>
           <Card>
             <CardHeader>
-              <Crosshair className="h-8 w-8 mb-2 text-primary" />
+              <Crosshair className="mb-2 h-8 w-8 text-primary" />
               <CardTitle>Agent Performance</CardTitle>
             </CardHeader>
             <CardContent>
@@ -62,7 +62,7 @@ const LandingPage = () => {
           </Card>
           <Card>
             <CardHeader>
-              <Map className="h-8 w-8 mb-2 text-primary" />
+              <Map className="mb-2 h-8 w-8 text-primary" />
               <CardTitle>Map Insights</CardTitle>
             </CardHeader>
             <CardContent>

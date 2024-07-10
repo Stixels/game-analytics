@@ -9,7 +9,7 @@ const DashboardLandingPage = () => {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Valorant Team Performance Overview</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle>Win Rate</CardTitle>
@@ -47,7 +47,7 @@ const DashboardLandingPage = () => {
 
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">Recent Highlights</h2>
-        <ul className="list-disc pl-5 space-y-2">
+        <ul className="list-disc space-y-2 pl-5">
           <li>
             JettMaster99 achieved a 35/5/8 KDA in the last match against Team
             Phantom
