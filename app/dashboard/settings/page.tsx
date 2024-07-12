@@ -25,15 +25,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { LoadingOverlay } from "@/components/LoadingOverlay";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 
 const profileFormSchema = z.object({
   fullName: z.string().min(2, {
     message: "Full name must be at least 2 characters.",
   }),
-  riotName: z.string().min(2, {
+  riotId: z.string().min(2, {
     message: "Riot name must be at least 2 characters.",
   }),
 });
@@ -50,6 +50,15 @@ const passwordFormSchema = z.object({
   }),
 });
 
+const SkeletonForm = () => (
+  <div className="space-y-4">
+    <Skeleton className="h-4 w-[100px]" />
+    <Skeleton className="h-10 w-full" />
+    <Skeleton className="h-4 w-[100px]" />
+    <Skeleton className="h-10 w-full" />
+  </div>
+);
+
 export default function SettingsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -62,7 +71,7 @@ export default function SettingsPage() {
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       fullName: "",
-      riotName: "",
+      riotId: "",
     },
   });
 
@@ -82,7 +91,6 @@ export default function SettingsPage() {
 
   useEffect(() => {
     async function loadUserProfile() {
-      setLoading(true);
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -91,12 +99,12 @@ export default function SettingsPage() {
         emailForm.setValue("email", user.email || "");
         const { data: profile } = await supabase
           .from("profiles")
-          .select("full_name, riot_name")
+          .select("full_name, riot_id")
           .eq("id", user.id)
           .single();
         if (profile) {
           profileForm.setValue("fullName", profile.full_name || "");
-          profileForm.setValue("riotName", profile.riot_name || "");
+          profileForm.setValue("riotId", profile.riot_id || "");
         }
       }
       setLoading(false);
@@ -109,11 +117,11 @@ export default function SettingsPage() {
     const { error: updateError } = await supabase.from("profiles").upsert({
       id: user?.id,
       full_name: values.fullName,
-      riot_name: values.riotName,
+      riot_id: values.riotId,
     });
 
     if (updateError) {
-      toast.error("Failed to update profile");
+      toast.error("Failed to update profile: " + updateError.message);
     } else {
       toast.success("Profile updated successfully");
     }
@@ -125,7 +133,7 @@ export default function SettingsPage() {
     const { error } = await supabase.auth.updateUser({ email: values.email });
 
     if (error) {
-      toast.error("Failed to update email");
+      toast.error("Failed to update email: " + error.message);
     } else {
       toast.success(
         "Email update initiated. Please check your new email for confirmation.",
@@ -151,10 +159,6 @@ export default function SettingsPage() {
     setPasswordLoading(false);
   };
 
-  if (loading) {
-    return <LoadingOverlay message="Loading your settings..." />;
-  }
-
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="mb-6 text-3xl font-bold">Account Settings</h1>
@@ -166,50 +170,60 @@ export default function SettingsPage() {
               Update your account profile details here.
             </CardDescription>
           </CardHeader>
-          <Form {...profileForm}>
-            <form onSubmit={profileForm.handleSubmit(onProfileSubmit)}>
-              <CardContent className="space-y-4">
-                <FormField
-                  control={profileForm.control}
-                  name="fullName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Your full name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={profileForm.control}
-                  name="riotName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Riot Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Your Riot name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-              <CardFooter>
-                <Button type="submit" disabled={profileLoading}>
-                  {profileLoading ? (
-                    <>
-                      <LoadingSpinner className="mr-2" />
-                      Updating Profile...
-                    </>
-                  ) : (
-                    "Update Profile"
-                  )}
-                </Button>
-              </CardFooter>
-            </form>
-          </Form>
+          <CardContent>
+            {loading ? (
+              <SkeletonForm />
+            ) : (
+              <Form {...profileForm}>
+                <form
+                  onSubmit={profileForm.handleSubmit(onProfileSubmit)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={profileForm.control}
+                    name="fullName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Your full name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={profileForm.control}
+                    name="riotId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Riot ID</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Your Riot ID" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </form>
+              </Form>
+            )}
+          </CardContent>
+          <CardFooter>
+            <Button
+              onClick={profileForm.handleSubmit(onProfileSubmit)}
+              disabled={profileLoading || loading}
+            >
+              {profileLoading ? (
+                <>
+                  <LoadingSpinner className="mr-2" />
+                  Updating Profile...
+                </>
+              ) : (
+                "Update Profile"
+              )}
+            </Button>
+          </CardFooter>
         </Card>
 
         <Card>
@@ -219,37 +233,47 @@ export default function SettingsPage() {
               Change your account email address.
             </CardDescription>
           </CardHeader>
-          <Form {...emailForm}>
-            <form onSubmit={emailForm.handleSubmit(onEmailSubmit)}>
-              <CardContent className="space-y-4">
-                <FormField
-                  control={emailForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Your email address" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-              <CardFooter>
-                <Button type="submit" disabled={emailLoading}>
-                  {emailLoading ? (
-                    <>
-                      <LoadingSpinner className="mr-2" />
-                      Updating Email...
-                    </>
-                  ) : (
-                    "Update Email"
-                  )}
-                </Button>
-              </CardFooter>
-            </form>
-          </Form>
+          <CardContent>
+            {loading ? (
+              <SkeletonForm />
+            ) : (
+              <Form {...emailForm}>
+                <form
+                  onSubmit={emailForm.handleSubmit(onEmailSubmit)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={emailForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Your email address" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </form>
+              </Form>
+            )}
+          </CardContent>
+          <CardFooter>
+            <Button
+              onClick={emailForm.handleSubmit(onEmailSubmit)}
+              disabled={emailLoading || loading}
+            >
+              {emailLoading ? (
+                <>
+                  <LoadingSpinner className="mr-2" />
+                  Updating Email...
+                </>
+              ) : (
+                "Update Email"
+              )}
+            </Button>
+          </CardFooter>
         </Card>
 
         <Card>
@@ -257,41 +281,51 @@ export default function SettingsPage() {
             <CardTitle>Change Password</CardTitle>
             <CardDescription>Update your account password.</CardDescription>
           </CardHeader>
-          <Form {...passwordForm}>
-            <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}>
-              <CardContent className="space-y-4">
-                <FormField
-                  control={passwordForm.control}
-                  name="newPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>New Password</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="password"
-                          placeholder="Enter new password"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-              <CardFooter>
-                <Button type="submit" disabled={passwordLoading}>
-                  {passwordLoading ? (
-                    <>
-                      <LoadingSpinner className="mr-2" />
-                      Updating Password...
-                    </>
-                  ) : (
-                    "Update Password"
-                  )}
-                </Button>
-              </CardFooter>
-            </form>
-          </Form>
+          <CardContent>
+            {loading ? (
+              <SkeletonForm />
+            ) : (
+              <Form {...passwordForm}>
+                <form
+                  onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={passwordForm.control}
+                    name="newPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>New Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="password"
+                            placeholder="Enter new password"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </form>
+              </Form>
+            )}
+          </CardContent>
+          <CardFooter>
+            <Button
+              onClick={passwordForm.handleSubmit(onPasswordSubmit)}
+              disabled={passwordLoading || loading}
+            >
+              {passwordLoading ? (
+                <>
+                  <LoadingSpinner className="mr-2" />
+                  Updating Password...
+                </>
+              ) : (
+                "Update Password"
+              )}
+            </Button>
+          </CardFooter>
         </Card>
       </div>
     </div>

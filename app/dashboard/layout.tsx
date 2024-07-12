@@ -8,16 +8,21 @@ import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
   Users,
-  Crosshair,
-  Map,
-  Award,
   Settings,
   Menu,
   X,
   LogOut,
+  ChevronDown,
 } from "lucide-react";
 import { logout } from "./actions";
 import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const SidebarLink = ({
   href,
@@ -34,11 +39,11 @@ const SidebarLink = ({
   return (
     <Link
       href={href}
-      className={`flex items-center space-x-2 p-2 rounded-lg ${
+      className={`flex items-center space-x-2 rounded-lg p-2 ${
         isActive ? "bg-secondary" : "hover:bg-secondary/50"
       }`}
     >
-      <Icon className="w-5 h-5" />
+      <Icon className="h-5 w-5" />
       <span>{children}</span>
     </Link>
   );
@@ -46,7 +51,10 @@ const SidebarLink = ({
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState("Team A");
   const router = useRouter();
+
+  const teams = ["Team A", "Team B", "Team C"]; // Example teams
 
   const handleLogout = async () => {
     try {
@@ -63,45 +71,38 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const handleTeamChange = (team: string) => {
+    setSelectedTeam(team);
+    // Here you would typically fetch data for the selected team
+    toast.success(`Switched to ${team}`);
+  };
+
   const SidebarContent = () => (
     <>
       <Link
         href="/dashboard"
-        className="text-2xl font-bold mb-8 hidden md:flex"
+        className="mb-8 hidden text-2xl font-bold md:flex"
       >
         TeamTracker
       </Link>
-      <nav className="space-y-2 flex-grow">
+      <nav className="flex-grow space-y-2">
         <SidebarLink href="/dashboard" icon={LayoutDashboard}>
           Dashboard
         </SidebarLink>
-        <SidebarLink href="/dashboard/agents" icon={Users}>
-          Agents
-        </SidebarLink>
-        <SidebarLink href="/dashboard/performance" icon={Crosshair}>
-          Performance
-        </SidebarLink>
-        <SidebarLink href="/dashboard/maps" icon={Map}>
-          Map Stats
-        </SidebarLink>
-        <SidebarLink href="/dashboard/tournaments" icon={Award}>
-          Tournaments
+        <SidebarLink href="/dashboard/teams" icon={Users}>
+          Teams
         </SidebarLink>
         <SidebarLink href="/dashboard/settings" icon={Settings}>
           Settings
         </SidebarLink>
       </nav>
-      <Button variant="outline" className="w-full" onClick={handleLogout}>
-        <LogOut className="w-4 h-4 mr-2" />
-        Log Out
-      </Button>
     </>
   );
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Sidebar for larger screens */}
-      <aside className="hidden md:flex flex-col w-64 bg-card text-card-foreground p-4 border-r border-border">
+    <div className="flex h-screen bg-background">
+      {/* Static sidebar for larger screens */}
+      <aside className="hidden w-64 flex-shrink-0 border-r border-border bg-card p-4 md:flex md:flex-col">
         <SidebarContent />
       </aside>
 
@@ -112,15 +113,15 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             className="fixed inset-0 bg-black/50"
             onClick={() => setSidebarOpen(false)}
           />
-          <aside className="fixed top-0 left-0 bottom-0 w-64 bg-card text-card-foreground p-4 border-r border-border overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
+          <aside className="fixed bottom-0 left-0 top-0 w-64 border-r border-border bg-card p-4">
+            <div className="mb-4 flex items-center justify-between">
               <span className="text-2xl font-bold">TeamTracker</span>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setSidebarOpen(false)}
               >
-                <X className="w-5 h-5" />
+                <X className="h-5 w-5" />
               </Button>
             </div>
             <SidebarContent />
@@ -129,25 +130,63 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       )}
 
       {/* Main content */}
-      <div className="flex-grow flex flex-col">
-        <header className="bg-card text-card-foreground p-4 md:hidden border-b border-border">
-          <div className="flex justify-between items-center">
-            <Link href="/dashboard" className="text-2xl font-bold">
-              TeamTracker
-            </Link>
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <header className="flex items-center justify-between border-b border-border bg-card p-4">
+          <div className="flex items-center">
             <Button
               variant="ghost"
               size="icon"
+              className="mr-2 md:hidden"
               onClick={() => setSidebarOpen(true)}
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="h-5 w-5" />
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="flex items-center space-x-2"
+                >
+                  <span>{selectedTeam}</span>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {teams.map((team) => (
+                  <DropdownMenuItem
+                    key={team}
+                    onSelect={() => handleTeamChange(team)}
+                  >
+                    {team}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <div className="flex items-center space-x-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Avatar className="cursor-pointer">
+                  <AvatarImage src="/path-to-avatar.jpg" alt="User" />
+                  <AvatarFallback>U</AvatarFallback>
+                </Avatar>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem
+                  onSelect={() => router.push("/dashboard/settings")}
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
-        <main className="flex-grow p-4 md:p-8">{children}</main>
-        <footer className="bg-card text-card-foreground p-4 text-center border-t border-border">
-          &copy; 2024 TeamTracker. All rights reserved.
-        </footer>
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>
       </div>
     </div>
   );
