@@ -160,7 +160,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="mx-auto space-y-4">
       <h1 className="mb-6 text-3xl font-bold">Account Settings</h1>
       <div className="space-y-6">
         <Card>
