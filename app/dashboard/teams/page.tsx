@@ -30,6 +30,7 @@ import { createTeam, joinTeam } from "./actions";
 
 const createTeamSchema = z.object({
   name: z.string().min(1, "Team name is required"),
+  game: z.string().min(1, "Game is required"),
 });
 
 const joinTeamSchema = z.object({
@@ -39,6 +40,7 @@ const joinTeamSchema = z.object({
 interface Team {
   id: string;
   name: string;
+  game: string;
   invite_code: string;
   is_admin: boolean;
 }
@@ -56,6 +58,8 @@ const SkeletonTeamCard = () => (
   </Card>
 );
 
+const gameOptions = ['Valorant'];
+
 export default function TeamsPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +67,7 @@ export default function TeamsPage() {
 
   const createTeamForm = useForm<z.infer<typeof createTeamSchema>>({
     resolver: zodResolver(createTeamSchema),
-    defaultValues: { name: "" },
+    defaultValues: { name: "", game: ""},
   });
 
   const joinTeamForm = useForm<z.infer<typeof joinTeamSchema>>({
@@ -86,6 +90,7 @@ export default function TeamsPage() {
           teams (
             id,
             name,
+			game,
             invite_code
           )
         `,
@@ -98,6 +103,7 @@ export default function TeamsPage() {
         const formattedTeams: Team[] = data.map((item: any) => ({
           id: item.teams.id,
           name: item.teams.name,
+		  game: item.teams.game,
           invite_code: item.teams.invite_code,
           is_admin: item.role === "admin",
         }));
@@ -166,6 +172,26 @@ export default function TeamsPage() {
                     </FormItem>
                   )}
                 />
+				<FormField
+                  control={createTeamForm.control}
+                  name="game"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Game: </FormLabel>
+                      <FormControl>
+                        <select {...field} className="input">
+                          <option value="" disabled>Select a game</option>
+                          {gameOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <Button type="submit" className="mt-4">
                   Create Team
                 </Button>
@@ -219,6 +245,8 @@ export default function TeamsPage() {
                 <CardContent>
                   {team.is_admin && (
                     <div>
+					  <p className= "font-bold">Game:</p>
+					  <p>{team.game}</p>
                       <p className="font-bold">Invite Code:</p>
                       <p>{team.invite_code}</p>
                       <Button

@@ -7,6 +7,7 @@ import { z } from "zod";
 
 const createTeamSchema = z.object({
   name: z.string().min(1, "Team name is required"),
+  game: z.string().min(1, "Game is required"),
 });
 
 const joinTeamSchema = z.object({
@@ -23,7 +24,7 @@ export async function createTeam(formData: z.infer<typeof createTeamSchema>) {
     return { error: "User not authenticated" };
   }
 
-  const { name } = createTeamSchema.parse(formData);
+  const { name, game } = createTeamSchema.parse(formData);
 
   // Generate a unique invite code
   const invite_code = Math.random().toString(36).substring(2, 10).toUpperCase();
@@ -31,7 +32,7 @@ export async function createTeam(formData: z.infer<typeof createTeamSchema>) {
   // Create the team
   const { data: team, error } = await supabase
     .from("teams")
-    .insert({ name, created_by: user.id, invite_code })
+    .insert({ name, created_by: user.id, invite_code, game })
     .select()
     .single();
 
