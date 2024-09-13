@@ -97,14 +97,24 @@ export default function SettingsPage() {
       if (user) {
         setUser(user);
         emailForm.setValue("email", user.email || "");
-        const { data: profile } = await supabase
+
+        const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("full_name, riot_id")
           .eq("id", user.id)
           .single();
-        if (profile) {
+
+        if (profileError) {
+          console.error("Error fetching profile:", profileError);
+          toast.error("Failed to load profile. Please try again.");
+        } else if (profile) {
           profileForm.setValue("fullName", profile.full_name || "");
           profileForm.setValue("riotId", profile.riot_id || "");
+        } else {
+          console.log("No profile found for user:", user.id);
+          // Handle case where profile exists but data is empty
+          profileForm.setValue("fullName", "");
+          profileForm.setValue("riotId", "");
         }
       }
       setLoading(false);
@@ -114,11 +124,14 @@ export default function SettingsPage() {
 
   const onProfileSubmit = async (values: z.infer<typeof profileFormSchema>) => {
     setProfileLoading(true);
-    const { error: updateError } = await supabase.from("profiles").upsert({
-      id: user?.id,
-      full_name: values.fullName,
-      riot_id: values.riotId,
-    });
+    const { error: updateError } = await supabase.from("profiles").upsert(
+      {
+        id: user?.id,
+        full_name: values.fullName,
+        riot_id: values.riotId,
+      },
+      { onConflict: "id" },
+    );
 
     if (updateError) {
       toast.error("Failed to update profile: " + updateError.message);

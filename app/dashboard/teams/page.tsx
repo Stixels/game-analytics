@@ -2,209 +2,87 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
-import { createTeam, joinTeam } from "./actions";
-
-const createTeamSchema = z.object({
-  name: z.string().min(1, "Team name is required"),
-});
-
-const joinTeamSchema = z.object({
-  inviteCode: z.string().min(1, "Invite code is required"),
-});
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import CreateTeamDialog from "./CreateTeamDialog";
+import JoinTeamDialog from "./JoinTeamDialog";
+import TeamCard from "./TeamCard";
+import { fetchTeams } from "./actions";
 
 interface Team {
   id: string;
   name: string;
   invite_code: string;
   is_admin: boolean;
+  created_by: string;
 }
 
 const SkeletonTeamCard = () => (
-  <Card>
-    <CardHeader>
-      <Skeleton className="h-6 w-3/4" />
-    </CardHeader>
-    <CardContent>
-      <Skeleton className="mb-2 h-4 w-1/2" />
-      <Skeleton className="h-4 w-3/4" />
-      <Skeleton className="mt-2 h-8 w-1/2" />
-    </CardContent>
-  </Card>
+  <div className="rounded-lg border p-4">
+    <Skeleton className="mb-4 h-6 w-3/4" />
+    <Skeleton className="mb-2 h-4 w-1/2" />
+    <Skeleton className="mb-4 h-4 w-3/4" />
+    <Skeleton className="h-8 w-1/2" />
+  </div>
 );
 
 export default function TeamsPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const supabase = createClient();
-
-  const createTeamForm = useForm<z.infer<typeof createTeamSchema>>({
-    resolver: zodResolver(createTeamSchema),
-    defaultValues: { name: "" },
-  });
-
-  const joinTeamForm = useForm<z.infer<typeof joinTeamSchema>>({
-    resolver: zodResolver(joinTeamSchema),
-    defaultValues: { inviteCode: "" },
-  });
-
-  const fetchTeams = useCallback(async () => {
-    setLoading(true);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user) {
-      const { data, error } = await supabase
-        .from("team_members")
-        .select(
-          `
-          team_id,
-          role,
-          teams (
-            id,
-            name,
-            invite_code
-          )
-        `,
-        )
-        .eq("user_id", user.id);
-
-      if (error) {
-        toast.error("Failed to fetch teams: " + error.message);
-      } else if (data) {
-        const formattedTeams: Team[] = data.map((item: any) => ({
-          id: item.teams.id,
-          name: item.teams.name,
-          invite_code: item.teams.invite_code,
-          is_admin: item.role === "admin",
-        }));
-        setTeams(formattedTeams);
-      }
-    }
-    setLoading(false);
-  }, [supabase]);
+  const [currentUserId, setCurrentUserId] = useState<string>("");
 
   useEffect(() => {
-    fetchTeams();
-  }, [fetchTeams]);
-
-  async function onCreateTeamSubmit(values: z.infer<typeof createTeamSchema>) {
-    const result = await createTeam(values);
-    if (result.success) {
-      toast.success("Team created successfully");
-      createTeamForm.reset();
-      fetchTeams();
-    } else {
-      toast.error(result.error);
+    async function getUserId() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id ?? "");
     }
-  }
+    getUserId();
+  }, [supabase.auth]);
 
-  async function onJoinTeamSubmit(values: z.infer<typeof joinTeamSchema>) {
-    const result = await joinTeam(values);
+  const loadTeams = useCallback(async () => {
+    setLoading(true);
+    const result = await fetchTeams();
     if (result.success) {
-      toast.success("Joined team successfully");
-      joinTeamForm.reset();
-      fetchTeams();
+      setTeams(result.teams);
     } else {
-      toast.error(result.error);
+      toast.error(result.error || "Failed to fetch teams");
     }
-  }
+    setLoading(false);
+  }, []);
 
-  const handleCopyInviteCode = (inviteCode: string) => {
-    navigator.clipboard.writeText(inviteCode);
-    toast.success("Invite code copied to clipboard");
-  };
+  useEffect(() => {
+    loadTeams();
+  }, [loadTeams]);
 
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Teams</h1>
 
       <div className="flex space-x-4">
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>Create Team</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create a New Team</DialogTitle>
-            </DialogHeader>
-            <Form {...createTeamForm}>
-              <form onSubmit={createTeamForm.handleSubmit(onCreateTeamSubmit)}>
-                <FormField
-                  control={createTeamForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Team Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="mt-4">
-                  Create Team
-                </Button>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="outline">Join Team</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Join a Team</DialogTitle>
-            </DialogHeader>
-            <Form {...joinTeamForm}>
-              <form onSubmit={joinTeamForm.handleSubmit(onJoinTeamSubmit)}>
-                <FormField
-                  control={joinTeamForm.control}
-                  name="inviteCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Invite Code</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="mt-4">
-                  Join Team
-                </Button>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={() => setCreateDialogOpen(true)}>Create Team</Button>
+        <Button variant="outline" onClick={() => setJoinDialogOpen(true)}>
+          Join Team
+        </Button>
       </div>
+
+      <CreateTeamDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onTeamCreated={loadTeams}
+      />
+
+      <JoinTeamDialog
+        open={joinDialogOpen}
+        onOpenChange={setJoinDialogOpen}
+        onTeamJoined={loadTeams}
+      />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {loading
@@ -212,27 +90,21 @@ export default function TeamsPage() {
               <SkeletonTeamCard key={index} />
             ))
           : teams.map((team) => (
-              <Card key={team.id}>
-                <CardHeader>
-                  <CardTitle>{team.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {team.is_admin && (
-                    <div>
-                      <p className="font-bold">Invite Code:</p>
-                      <p>{team.invite_code}</p>
-                      <Button
-                        onClick={() => handleCopyInviteCode(team.invite_code)}
-                        className="mt-2"
-                      >
-                        Copy Invite Code
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <TeamCard
+                key={team.id}
+                team={team}
+                onTeamDeleted={loadTeams}
+                currentUserId={currentUserId}
+              />
             ))}
       </div>
+
+      {!loading && teams.length === 0 && (
+        <p className="text-center text-muted-foreground">
+          You haven&apos;t joined any teams yet. Create or join a team to get
+          started!
+        </p>
+      )}
     </div>
   );
 }

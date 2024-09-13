@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Crosshair, Users, Map } from "lucide-react";
+import { BarChart, Crosshair, Map } from "lucide-react";
 import Link from "next/link";
 
 const LandingPage = () => {
@@ -26,7 +26,7 @@ const LandingPage = () => {
           <h2 className="mb-4 text-5xl font-bold">
             Elevate Your Valorant Team&apos;s Performance
           </h2>
-          <p className="mb-8 text-xl">
+          <p className="mb-8 text-xl text-muted-foreground">
             Gain powerful insights to optimize your team&apos;s strategy, player
             performance, and competitive edge
           </p>
@@ -42,7 +42,7 @@ const LandingPage = () => {
               <CardTitle>Comprehensive Analytics</CardTitle>
             </CardHeader>
             <CardContent>
-              <p>
+              <p className="text-muted-foreground">
                 Track team and individual player performance metrics, including
                 ACS, K/D ratio, and economy rating.
               </p>
@@ -54,7 +54,7 @@ const LandingPage = () => {
               <CardTitle>Agent Performance</CardTitle>
             </CardHeader>
             <CardContent>
-              <p>
+              <p className="text-muted-foreground">
                 Analyze agent-specific stats and compositions to optimize your
                 team&apos;s strategy on each map.
               </p>
@@ -66,7 +66,7 @@ const LandingPage = () => {
               <CardTitle>Map Insights</CardTitle>
             </CardHeader>
             <CardContent>
-              <p>
+              <p className="text-muted-foreground">
                 Dive deep into map-specific performance data to identify
                 strengths and areas for improvement.
               </p>
